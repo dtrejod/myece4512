@@ -81,7 +81,7 @@ a  = @(k) (2/samPerSim) * sum(sig.*cos(2*pi*k*n/samPerSim));
 b  = @(k) (2/samPerSim) * sum(sig.*sin(2*pi*k*n/samPerSim));
 
 a0 = 1/samPerSim * sum(sig);
-kVec = 0:5;
+
 aVec = 0*kVec;
 bVec = 0*kVec;
 i = 1;
@@ -92,13 +92,10 @@ for k = kVec
 end
 
 fprintf('Fourier Series Rect Components:\n');
-fprintf(['    - Fourier Series Coefficient k=0:\n'...
-       '        a0 = %s\n'], ...
-       num2str(a0));
-for i=1:length(aVec)
+for i=0:length(cVec)-1
    fprintf(['    - Fourier Series Coefficient k=%d:\n'...
        '        ak = %s / bk = %s \n'], ...
-       i, num2str(aVec(i)), num2str(bVec(i)));
+       i, num2str(aVec(i+1)), num2str(bVec(i+1));
 end
 fprintf('\n\n');
 
