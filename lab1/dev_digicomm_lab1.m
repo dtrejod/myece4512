@@ -65,6 +65,15 @@ x = mod_sig.Data;
 sig = x(1:length(x)-1)';
 sigPeriod = sig(1:samPeriod);
 
+% Print scope and spectrum analyzer to figures
+figure();
+plot(org_sig);
+hold on
+plot(mod_sig);
+xlabel('time (secs)');
+ylabel('Amplitude');
+legend('Original Signal', 'Distorted Signal');
+
 % -------------------------------
 % - Fourier Series Calculations -
 % -------------------------------
