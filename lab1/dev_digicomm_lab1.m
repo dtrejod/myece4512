@@ -99,16 +99,16 @@ end
 % Print Fourier Series Cofficients to Screen
 fprintf('Fourier Series Complex Components:\n');
 for i=1:length(cVec)
-   fprintf(['    - Fourier Series Coefficient k=%d:\n'...
+   fprintf(['    - Fourier Series Coefficient k = %d:\n'...
        '        ck = %s / %s \n'], ...
        kVec(i), num2str(cVec(i)), polarCVec{i});
 end
 fprintf('\n\n');
 
-% Find Fourier Series Polar Components. We define a inline function
+% Find Fourier Series General Components. We define a inline function
 n = 0:samPeriod-1;
-a  = @(k) (2/samPeriod) * sum(sigPeriod.*cos(2*pi*k*n/samPeriod));
-b  = @(k) (2/samPeriod) * sum(sigPeriod.*sin(2*pi*k*n/samPeriod));
+a = @(k) (2/samPeriod) * sum(sigPeriod.*cos(2*pi*k*n/samPeriod));
+b = @(k) (2/samPeriod) * sum(sigPeriod.*sin(2*pi*k*n/samPeriod));
 
 % Lets solve for "c" for many different values of k by using a loop
 aVec = 0*kVec;
@@ -137,7 +137,7 @@ for i = 1:length(cVec)
     polarC2Vec(i) = cellstr(rtp(cVec2(i), 'd'));
 end
 
-fprintf('Fourier Series Rect Components:\n');
+fprintf('Fourier Series General Components:\n');
 for i=1:length(aVec)
    fprintf(['    - Fourier Series Coefficient k = %d:\n'...
        '        ak = %s / bk = %s \n', ...
