@@ -1,21 +1,17 @@
 % Digital Communications 
-% Lab 2
+% Lab 1
 % By: Devin Trejo
 
 %% 
 clear; clc; close all;
 
 % Input parameters
-A = 1; % Amplitude of sine wave (V)
-N1 = 0.1;
-N2 = 0.2;
-N3 = 0.25;
-T = 1.5;
-%T = 2E-3; % Period of sine wave (secs)
-%TH = 3.5; % Threshold of sine wave (V)
+A = 7; % Amplitude of sine wave (V)
+T = 2E-3; % Period of sine wave (secs)
+TH = 3.5; % Threshold of sine wave (V)
 
 % Simulation Specific Input
-%samTime = 2E-6; % Simulation sample period
+samTime = 2E-6; % Simulation sample period
 startTime = 0; % Simulation Start Time (sec) (Do not change from 0)
 stopTime = T; % Simulation Stop Time (sec)
 
@@ -23,16 +19,36 @@ stopTime = T; % Simulation Stop Time (sec)
 % - Below this line everything is automatically calculated -
 % ----------------------------------------------------------
 
+% Convert from period to frequency
+f0 = 1/T;
+fs = 1/samTime;
+
+% Find the discrete time frequency
+dis_sigf = f0/fs;
+
+% Calculate discrete time period
+samPeriod = ceil(1/dis_sigf);
+
+% We want the simulation to run for one period
+samPerSim = samPeriod;
+
+% Print Signal Statics to Console
+fprintf(['Signal Stats: \n'...
+    '    - Signal Amplitude: %s V\n'...
+    '    - Signal Frequency (f0): %s Hz / Period: %s secs\n']...
+    , num2str(A), num2str(f0), num2str(T)); 
+fprintf('\n\n');
+
 % ---------------------------
 % - Simulate Simulink Model -
 % ---------------------------
 
 % Run Simulink Simulation with given workspace parameters
 options = simset('SrcWorkspace','current');
-set_param('Lab2', 'StartTime', num2str(startTime), 'StopTime', ...
+set_param('Lab1', 'StartTime', num2str(startTime), 'StopTime', ...
     num2str(stopTime));
-sim('Lab2',[],options);
-%%
+sim('Lab1',[],options);
+
 % Autoscale all opened scopes
 set(0, 'showhiddenhandles', 'on')
 scope = findobj(0, 'Tag', 'SIMULINK_SIMSCOPE_FIGURE');
