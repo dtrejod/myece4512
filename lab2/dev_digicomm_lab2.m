@@ -118,8 +118,8 @@ DC3 = XCalc(1);
 
 % RMS Values
 RMS = sqrt(mean(sigP.^2));
-RMS2 = sqrt(sum(XSim.^2));
-RMS3 = sqrt(sum(XCalc.^2));
+RMS2 = sqrt(PavSim);
+RMS3 = sqrt(PavCalc);
 
 % Print scope and spectrum analyzer to figures
 figure();
