@@ -87,28 +87,29 @@ XAct(1) = XAct(1)/2;
 % ----------------------------
 % - Calculate Power (Part 1) -
 % ----------------------------
-
-% Calculate Average Power for Actual, Simulated, and Calculated
-PavAct = mean(sigP.^2); % Assume RL = 1 ohm
-PavActdBm = pow2db(PavAct) + 30;
-PavSim = sum(XSim.^2);
-PavSimdBm = pow2db(PavSim) + 30;
-PwX = XCalc.^2/2;
-PwX(1) = XCalc(1).^2;
-PwX = cumsum(PwX);
-PavCalc = sum(PwX);
-PavCalcdBm = pow2db(PavCalc) + 30;
-
 % Max Harmonic
 kMax = max(kVec)+1;
 
-% Plot
-figure()
-plot(f(1:kMax),XCalc);
-xlabel('Frequency (Hz)');
-ylabel('Power (dBm)');
-xlim([0 f(max(kVec+1))]);
-grid on;
+Pav = mean(sigP.^2);
+
+% Calculate Average Power for Actual, Simulated, and Calculated
+PwXAct = XAct.^2/2;
+PwXAct(1) = XAct(1).^2;
+PwXAct = cumsum(PwXAct);
+PavAct = PwXAct(kMax);
+PavActdBm = pow2db(PavAct) + 30;
+
+PwXSim = XSim.^2/2;
+PwXSim(1) = XSim(1).^2;
+PwXSim = cumsum(PwXSim);
+PavSim = PwXSim(kMax);
+PavSimdBm = pow2db(PavSim) + 30;
+
+PwXCalc = XCalc.^2/2;
+PwXCalc(1) = XCalc(1).^2;
+PwXCalc = cumsum(PwXCalc);
+PavCalc = PwXCalc(kMax);
+PavCalcdBm = pow2db(PavCalc) + 30;
 
 % DC Value
 DC = mean(sigP);
@@ -116,9 +117,9 @@ DC2 = XSim(1);
 DC3 = XCalc(1);
 
 % RMS Values
-RMS = rms(sigP);
-RMS2 = sqrt(mean(XSim(1).^2));
-RMS3 = sqrt(mean(XCalc(1).^2));
+RMS = sqrt(mean(sigP.^2));
+RMS2 = sqrt(sum(XSim.^2));
+RMS3 = sqrt(sum(XCalc.^2));
 
 % Print scope and spectrum analyzer to figures
 figure();
@@ -135,24 +136,34 @@ legend('Original Signal', 'DC Value', 'RMS Value');
 % - Different in Coefficients -
 % -----------------------------
 
+% Find difference between X Simulated and Calculated
+Per_err = abs(XSim(1:kMax)-XCalc)./XCalc*100;
+
 % Find normalized power in each harmonic
-Pharm = PwX/PavAct*100;
+Pharm = PwXCalc/Pav*100;
 
 % Find Fourier Transform from Spectrum Analyzer and Calculated
-Per_err = abs(XSim-XCalc)./XCalc*100;
+Per_err2 = abs(PwXSim(1:kMax)-PwXCalc)./PwXCalc*100;
 
 % Print to console the findings
-tableLegend = {'f'; 'n'; 'Norm_Power'; 'Pw_XAct'; 'Pw_XSim'; ...
-    'Pw_XCalc'; 'Percent_Diff'};
-Presults = table(f(1:kMax)', kVec(:), Pharm(:), XAct(1:kMax)', ...
-    XSim', XCalc', Per_err', ...
+tableLegend = {'f'; 'n'; 'XAct'; 'XSim'; ...
+    'XCalc'; 'Percent_Diff'};
+Presults = table(f(1:kMax)', kVec(:), XAct(1:kMax)', ...
+    XSim(1:kMax)', XCalc', Per_err', ...
     'VariableNames', tableLegend);   
 disp(Presults);
 
-fprintf(['Actual: DC = %0.2f / RMS = %0.2f\n'...
-    'Simulated: DC = %0.2f / RMS = %0.2f\n'...
-    'Calculated: DC = %0.2f / RMS = %0.2f\n\n'], ...
-    DC, RMS, DC2, RMS2, DC3, RMS3);
+tableLegend2 = {'f'; 'n'; 'Norm_Power'; 'Pw_XAct'; 'Pw_XSim'; ...
+    'Pw_XCalc'; 'Percent_Diff'};
+Presults2 = table(f(1:kMax)', kVec(:), Pharm(:), PwXAct(1:kMax)', ...
+    PwXSim(1:kMax)', PwXCalc', Per_err2', ...
+    'VariableNames', tableLegend2);   
+disp(Presults2);
+
+fprintf(['Actual: Pav = %0.2f W / DC = %0.2f / RMS = %0.2f\n'...
+    'Simulated: Pav = %0.2f W / DC = %0.2f / RMS = %0.2f\n'...
+    'Calculated: Pav = %0.2f W / DC = %0.2f / RMS = %0.2f\n\n'], ...
+    PavAct, DC, RMS, PavSim, DC2, RMS2, PavCalc, DC3, RMS3);
 
 % Plot a comparison between simulated and calculated values. 
 figure()
