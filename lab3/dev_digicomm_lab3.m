@@ -6,24 +6,28 @@
 clear; clc; close all;
 
 % Input parameters
+%
 T = 9E-3;
 T1 = 2.7E-3;
 A1 = 3.3;
 T2 = 3.6E-3;
 A2 = 1.6;
-T3 = T1 + T2;
+T3 = T - (T1 + T2);
 A3 = 0;
 
-t = [0, T1, T2; T1, T2, T];
-t = t(:);
-A = [A1, A2, A3; A1 A2 A3];
-y = A(:);
-
 % Simulation Specific Input
+%
 Ts = 1E-6; % Sample Time Period
 fs = 1/Ts; % Sample Frequency
-startTime = 0; % Simulation Start Time (sec) (Do not change from 0)
-stopTime = 4*T; % Simulation Stop Time (sec) - Simulate over one period
+Tvisible = 1; % Periods to show
+
+% FFT Frequency Resolution Scalar
+%
+fftres = 15;
+
+% Display Max Frequency
+%
+maxf = 1E3;
 
 % ----------------------------------------------------------
 % ----------------------------------------------------------
@@ -31,174 +35,130 @@ stopTime = 4*T; % Simulation Stop Time (sec) - Simulate over one period
 % ----------------------------------------------------------
 % ----------------------------------------------------------
 
+% Start End Time
+%
+startTime = 0;
+stopTime = T*Tvisible;
+Tz = mean([T1 T2]);
+
+% Construct signal
+%
+A1x = repelem(A1, int64(T1*fs));
+A2x = repelem(A2, int64(T2*fs));
+A3x = repelem(A3, int64(T3*fs));
+A = [A1x A2x A3x];
+A = repmat(A, 1, Tvisible);
+samL = length(A);
+t = linspace(0,stopTime, samL);
+sig = timeseries(A, t, 'Name', 'Pulse Input Signal');
+
+% Create seperated Pulses
+%
+
+sigDC = mean(A);
+A1L = length(A1x);
+A1sig = repmat([A1x zeros(1, samL/Tvisible-A1L)], 1, Tvisible);
+A2L = length(A2x);
+A2sig = repmat([zeros(1, A1L) ...
+    A2x zeros(1, samL/Tvisible-(A2L+A1L))], 1, Tvisible);
+sig1 = timeseries(A1sig, t, 'Name', 'Pulse1');
+sig2 = timeseries(A2sig, t, 'Name', 'Pulse1');
+
+% Plot signal
+%
+figure();
+plot(t, A);
+hold on;
+plot([startTime stopTime], [1 1].*sigDC, '--');
+legend('Actual Signal', 'DC Component');
+grid on;
+xlabel('Time (secs)');
+ylabel('Volts (V)');
+
+% Plot smaller signals
+%
+figure()
+plot(t,A1sig);
+hold on;
+plot(t,A2sig);
+grid on;
+xlabel('Time (secs)');
+ylabel('Volts (V)');
+
+legend('Pulse1', 'Pulse2');
+
 % Run Simulink Simulation with given workspace parameters
+%
 options = simset('SrcWorkspace','current');
 set_param('lab3', 'StartTime', num2str(startTime), 'StopTime', ...
     num2str(stopTime));
 sim('lab3',[],options);
 
-% Extract Data from Simunlink Simulation. The simulation spits out one
-% extra sample so we truncate it by one. We also define the signal in terms
-% of only one period
-x = sig.Data';
-%sigP = x(1:N); % Signal over one period
-
-%%
-A = 1; % Amplitude of sine wave (V)
-N1 = 0.1; % Time legnth of Ramp1
-N2 = 0.2; % Time legnth of constant
-N3 = 0.25;% Time legnth of Ramp2
-T = 1.5E-3;  % Period of waveform (secs)
-
-t0 = 0;
-t1 = N1*T;
-t2 = (N1+N2)*T;
-t3 = (N1+N2+N3)*T;
-
-% Simulation Specific Input
-Ts = 1E-6; % Sample Time Period
-fs = 1/Ts; % Sample Frequency
-startTime = 0; % Simulation Start Time (sec) (Do not change from 0)
-stopTime = T; % Simulation Stop Time (sec) - Simulate over one period
-N = fs*T; % Samples in Simulation
-kVec = 0:5;
-
-% ----------------------------------------------------------
-% ----------------------------------------------------------
-% - Below this line everything is automatically calculated -
-% ----------------------------------------------------------
-% ----------------------------------------------------------
-
-% ------------------------------------
-% - Simulate Simulink Model (Part 2) -
-% ------------------------------------
-
-% Frequnecy Range in accordance with Nyquist
-f = linspace(0,fs,N);
-
-% Max freqeuncy to display on Spectrum Analyzer
-spec_span = f(length(kVec));
-
-% Run Simulink Simulation with given workspace parameters
-options = simset('SrcWorkspace','current');
-set_param('lab2_1', 'StartTime', num2str(startTime), 'StopTime', ...
-    num2str(stopTime));
-sim('lab2_1',[],options);
-
-% Extracted Values for first five values in Spectrum Analyzer (in Watts)
-Pw_XSim = [130.173E-3 161.838E-3 33.651E-3 1.781E-3 220.210E-6 ...
-    144.803E-6];
-% In terms of watts. We convert back to Volts (assume Rload = 1ohm)
-XSim = sqrt(Pw_XSim*2);
-XSim(1) = sqrt(Pw_XSim(1));
-
-% Extract Data from Simunlink Simulation. The simulation spits out one
-% extra sample so we truncate it by one. We also define the signal in terms
-% of only one period
-x = sig.Data';
-sigP = x(1:N); % Signal over one period
-
-% ---------------------------------------------
-% - Find Fourier Series Coefficients (Part 3) -
-% ---------------------------------------------
-
-% Find Fourier Series Complex Components. We define a inline function
-n = 0:N-1;
-ts = T/N;
-t = n*ts;
-
-% Define inline fn to calculate the Rectangular Fourier Series
-getA = @(n) (2/T)*sum(sigP.*cos(2*pi*n/T*t))*ts;
-getB = @(n) (2/T)*sum(sigP.*sin(2*pi*n/T*t))*ts;
-getAs = @(ns) arrayfun(getA,ns);
-getBs = @(ns) arrayfun(getB,ns);
-getXs = @(ns) sqrt(getAs(ns).^2 + getBs(ns).^2);
-
-% Calculate the Fourier Series
-XCalc = getXs(kVec);
-XCalc(1) = XCalc(1)/2;
-
-% Find Actualy FFT
-XAct = 2*abs(fft(sigP)/N);
-XAct(1) = XAct(1)/2;
-
-% ----------------------------
-% - Calculate Power (Part 1) -
-% ----------------------------
-
-% Calculate Average Power for Actual, Simulated, and Calculated
-PavAct = mean(sigP.^2); % Assume RL = 1 ohm
-PavActdBm = pow2db(PavAct) + 30;
-PavSim = sum(XSim.^2);
-PavSimdBm = pow2db(PavSim) + 30;
-PwX = XCalc.^2/2;
-PwX(1) = XCalc(1).^2;
-PwX = cumsum(PwX);
-PavCalc = sum(PwX);
-PavCalcdBm = pow2db(PavCalc) + 30;
-
-% Max Harmonic
-kMax = max(kVec)+1;
-
-% Plot
-figure()
-plot(f(1:kMax),XCalc);
-xlabel('Frequency (Hz)');
-ylabel('Power (dBm)');
-xlim([0 f(max(kVec+1))]);
-grid on;
-
-% DC Value
-DC = mean(sigP);
-DC2 = XSim(1);
-DC3 = XCalc(1);
-
-% RMS Values
-RMS = rms(sigP);
-RMS2 = sqrt(mean(XSim(1).^2));
-RMS3 = sqrt(mean(XCalc(1).^2));
-
-% Print scope and spectrum analyzer to figures
+% Plot Frequency Spectra
+%
 figure();
-plot(t, sigP);
+[FTMAsig , f] = devFFTMagdbm(A, fs, fftres);
 hold on
-plot(xlim, [DC DC], 'r--');
-plot(xlim, [RMS RMS], 'm--');
-grid on
-xlabel('time (secs)');
-ylabel('Amplitude (V)');
-legend('Original Signal', 'DC Value', 'RMS Value');
+Tavg = mean([T1 Tz]);
+xlim([0 maxf]);
+grid on;
+limits = axis();
+legend('Actual Fourier Transform');
 
-% -----------------------------
-% - Different in Coefficients -
-% -----------------------------
+% Plot Fourier Transform of Seperate Pulses
+%
+figure();
+[FTMA1sig, ~] = devFFTMagdbm(A1sig, fs, fftres);
+hold on;
+grid on;
+[FTMA2sig, ~] = devFFTMagdbm(A2sig, fs, fftres);
+axis(limits);
+plot([1/T1 1/T1], ylim, '--');
+plot([1/T2 1/T2], ylim, '--');
+plot([2/T1 2/T1], ylim, '--');
+plot([2/T2 2/T2], ylim, '--');
+legend('Pulse 1', 'Pulse 2', '1/T1', '1/T2', '2/T1', '2/T2');
 
-% Find normalized power in each harmonic
-Pharm = PwX/PavAct*100;
+% Find zeros of Fourier Transform
+%
+FTMAsigInv = 1.01*max(FTMAsig) - FTMAsig;
+[~,MinIdxFTMAsig] = findpeaks(FTMAsigInv);
 
-% Find Fourier Transform from Spectrum Analyzer and Calculated
-Per_err = abs(XSim-XCalc)./XCalc*100;
+A1sigInv = 1.01*max(FTMA1sig) - FTMA1sig;
+[~,MinIdxA1sig] = findpeaks(A1sigInv);
 
-% Print to console the findings
-tableLegend = {'f'; 'n'; 'Norm_Power'; 'Pw_XAct'; 'Pw_XSim'; ...
-    'Pw_XCalc'; 'Percent_Diff'};
-Presults = table(f(1:kMax)', kVec(:), Pharm(:), XAct(1:kMax)', ...
-    XSim', XCalc', Per_err', ...
+A2sigInv = 1.01*max(FTMA2sig) - FTMA2sig;
+[~,MinIdxA2sig] = findpeaks(A2sigInv);
+
+
+% Print four nulls in signal
+%
+fMinSig = f(MinIdxFTMAsig(1:4));
+fMinSig1 = f(MinIdxA1sig(1:4));
+fMinSig2 = f(MinIdxA2sig(1:4));
+
+disp('Actual Signal');
+tableLegend = {'Null_Location_freq'; 'Amplitude'};
+Presults = table(fMinSig',FTMAsig(MinIdxFTMAsig(1:4))', ...
     'VariableNames', tableLegend);   
 disp(Presults);
 
-fprintf(['Actual: DC = %0.2f / RMS = %0.2f\n'...
-    'Simulated: DC = %0.2f / RMS = %0.2f\n'...
-    'Calculated: DC = %0.2f / RMS = %0.2f\n\n'], ...
-    DC, RMS, DC2, RMS2, DC3, RMS3);
+disp('Pulse1');
+Presults = table(fMinSig1',FTMA1sig(MinIdxA1sig(1:4))', ...
+    'VariableNames', tableLegend);   
+disp(Presults);
 
-% Plot a comparison between simulated and calculated values. 
-figure()
-plot(kVec, XAct(1:kMax), 'LineWidth', 2);
-hold on
-plot(kVec, XSim);
-plot(kVec, XCalc);
-xlabel('harmonics (n)');
-ylabel('Volts (V)');
-legend('Actual', 'Simulated', 'Calculated');
-grid on
+disp('Pulse2');
+Presults = table(fMinSig2', FTMA2sig(MinIdxA2sig(1:4))', ...
+    'VariableNames', tableLegend);   
+disp(Presults);
+
+%%
+clear; clc; close all;
+T = 9E-3;
+
+rect=@(x,a) ones(1,numel(x)).*(abs(x)<a/2);
+
+syms x y
+f = rect(x, T);
+fourier(f,x,y)
