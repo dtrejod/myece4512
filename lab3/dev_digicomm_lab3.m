@@ -152,13 +152,3 @@ disp('Pulse2');
 Presults = table(fMinSig2', FTMA2sig(MinIdxA2sig(1:4))', ...
     'VariableNames', tableLegend);   
 disp(Presults);
-
-%%
-clear; clc; close all;
-T = 9E-3;
-
-rect=@(x,a) ones(1,numel(x)).*(abs(x)<a/2);
-
-syms x y
-f = rect(x, T);
-fourier(f,x,y)
